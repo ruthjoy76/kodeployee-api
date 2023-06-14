@@ -11,7 +11,12 @@ const employeeSchema = new mongoose.Schema({
     minLength: 8,
     required: true,
   },
+
   user: String,
+  photoInfo: {
+    url: String,
+    filename: String,
+  },
 });
 
 employeeSchema.set("toJSON", {

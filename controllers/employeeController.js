@@ -4,9 +4,12 @@ import isString from "../utils/isString.js";
 import getTokenFrom from "../utils/getTokenFrom.js";
 import jwt from "jsonwebtoken";
 import config from "../utils/config.js";
+import storage from "../utils/firebaseConfig.js";
+import { ref, uploadBytes } from "firebase/storage";
 
-async function getEmployees(_, res) {
-  const employees = await Employee.find({});
+async function getEmployees(req, res) {
+  const decodedToken = jwt.verify(getTokenFrom(req), config.SECRET);
+  const employees = await Employee.find({ user: decodedToken.id });
 
   return res.json(employees);
 }
@@ -34,11 +37,21 @@ async function createEmployee(req, res, next) {
     }
 
     const user = await User.findById(decodedToken.id);
+    const storageRef = ref(storage, req.file.originalname);
+    const metadata = {
+      contentType: "image/jpeg",
+    };
+    const snapshot = await uploadBytes(storageRef, req.file.buffer, metadata);
+    const photoUrl = `https://firebasestorage.googleapis.com/v0/b/${snapshot.ref.bucket}/o/${snapshot.ref.fullPath}?alt=media`;
 
     const employee = new Employee({
       name,
       number,
       user: user._id,
+      photoInfo: {
+        url: photoUrl,
+        filename: snapshot.ref.fullPath,
+      },
     });
 
     const savedEmployee = await employee.save();
