@@ -5,7 +5,8 @@ import getTokenFrom from "../utils/getTokenFrom.js";
 import jwt from "jsonwebtoken";
 import config from "../utils/config.js";
 import storage from "../utils/firebaseConfig.js";
-import { ref, uploadBytes } from "firebase/storage";
+import { ref, uploadBytes, deleteObject } from "firebase/storage";
+import generateUniqueImageFileName from "../utils/generateUniqueImageFileName.js";
 
 async function getEmployees(req, res) {
   const decodedToken = jwt.verify(getTokenFrom(req), config.SECRET);
@@ -37,7 +38,8 @@ async function createEmployee(req, res, next) {
     }
 
     const user = await User.findById(decodedToken.id);
-    const storageRef = ref(storage, req.file.originalname);
+
+    const storageRef = ref(storage, generateUniqueImageFileName(req.file));
     const metadata = {
       contentType: "image/jpeg",
     };
@@ -101,8 +103,21 @@ async function updateEmployee(req, res, next) {
 async function deleteEmployee(req, res, next) {
   try {
     const id = req.params.id;
-    await Employee.findByIdAndDelete(id);
+    const decodedToken = jwt.verify(getTokenFrom(req), config.SECRET);
 
+    if (!decodedToken.id) {
+      return res.status(401).json({ error: "Token missing or invalid" });
+    }
+
+    const user = await User.findById(decodedToken.id);
+    const employee = await Employee.findByIdAndDelete(id);
+    const photoRef = ref(storage, employee.photoInfo.filename);
+
+    await deleteObject(photoRef);
+
+    user.employees = user.employees.filter(
+      (employeeID) => employeeID.toString() !== employee._id.toString()
+    );
     return res.status(204).end();
   } catch (error) {
     next(error);
