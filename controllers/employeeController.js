@@ -30,7 +30,8 @@ async function getEmployee(req, res, next) {
 
 async function createEmployee(req, res, next) {
   try {
-    const { name, number } = req.body;
+    const { firstname, middlename, lastname, number, email, gender, dob } =
+      req.body;
     const decodedToken = jwt.verify(getTokenFrom(req), config.SECRET);
 
     if (!decodedToken.id) {
@@ -38,8 +39,8 @@ async function createEmployee(req, res, next) {
     }
 
     const user = await User.findById(decodedToken.id);
-
     const storageRef = ref(storage, generateUniqueImageFileName(req.file));
+
     const metadata = {
       contentType: "image/jpeg",
     };
@@ -47,8 +48,13 @@ async function createEmployee(req, res, next) {
     const photoUrl = `https://firebasestorage.googleapis.com/v0/b/${snapshot.ref.bucket}/o/${snapshot.ref.fullPath}?alt=media`;
 
     const employee = new Employee({
-      name,
+      firstname,
+      middlename,
+      lastname,
       number,
+      email,
+      gender,
+      dob,
       user: user._id,
       photoInfo: {
         url: photoUrl,
@@ -58,7 +64,7 @@ async function createEmployee(req, res, next) {
 
     const savedEmployee = await employee.save();
 
-    user.employees = user.employees.concat(savedEmployee._id);
+    user.employees.push(savedEmployee._id);
     await user.save();
 
     return res.status(201).json(savedEmployee);
@@ -69,20 +75,69 @@ async function createEmployee(req, res, next) {
 
 async function updateEmployee(req, res, next) {
   const id = req.params.id;
-  const { name, number } = req.body;
+  const { firstname, middlename, lastname, number, email, gender, dob } =
+    req.body;
 
-  if (name === undefined || number === undefined)
+  const previousEmployee = await Employee.findById(id);
+  let snapshot;
+  let photoUrl = "";
+
+  if (
+    firstname === undefined ||
+    middlename === undefined ||
+    lastname === undefined ||
+    email === undefined ||
+    gender === undefined ||
+    dob === undefined ||
+    number === undefined
+  )
     return res.status(400).json({ error: "Content is missing" });
 
-  if (name === "" || number === "")
-    return res.status(400).json({ error: "Name and number are required" });
+  if (
+    firstname === "" ||
+    middlename === "" ||
+    lastname === "" ||
+    email === "" ||
+    gender === "" ||
+    dob === "" ||
+    number === ""
+  )
+    return res.status(400).json({ error: "All fields are required" });
 
-  if (!isString(name) || !isString(number))
-    return res.status(400).json({ error: "Name and number must be strings" });
+  if (
+    !isString(firstname) ||
+    !isString(middlename) ||
+    !isString(lastname) ||
+    !isString(email) ||
+    !isString(gender) ||
+    !isString(dob) ||
+    !isString(number)
+  )
+    return res.status(400).json({ error: "All fields must be strings" });
+
+  if (req.file) {
+    const storageRef = ref(storage, generateUniqueImageFileName(req.file));
+    const metadata = {
+      contentType: "image/jpeg",
+    };
+    snapshot = await uploadBytes(storageRef, req.file.buffer, metadata);
+    photoUrl = `https://firebasestorage.googleapis.com/v0/b/${snapshot.ref.bucket}/o/${snapshot.ref.fullPath}?alt=media`;
+
+    const photoRef = ref(storage, previousEmployee.photoInfo.filename);
+    await deleteObject(photoRef);
+  }
 
   const employee = {
-    name,
+    firstname,
+    middlename,
+    lastname,
     number,
+    email,
+    gender,
+    dob,
+    photoInfo: req.file
+      ? { url: photoUrl, filename: snapshot.ref.fullPath }
+      : previousEmployee.photoInfo,
   };
 
   try {

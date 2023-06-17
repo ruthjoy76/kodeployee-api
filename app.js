@@ -4,6 +4,7 @@ import cors from "cors";
 import config from "./utils/config.js";
 import userRouter from "./routes/userRouter.js";
 import loginRouter from "./routes/loginRouter.js";
+import leaveRouter from "./routes/leaveRouter.js";
 import employeeRouter from "./routes/employeeRouter.js";
 import errorHandler from "./middlewares/errorHandler.js";
 import unknownEndpoint from "./middlewares/unknownEndpoint.js";
@@ -23,6 +24,8 @@ app.use(express.static("dist"));
 app.use("/api/users", userRouter);
 app.use("/api/login", loginRouter);
 app.use("/api/employees", employeeRouter);
+app.use("/api/leaveApplication", leaveRouter);
+
 app.use(unknownEndpoint);
 app.use(errorHandler);
 
