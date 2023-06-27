@@ -2,7 +2,7 @@ import User from "../models/User.js";
 import Employee from "../models/Employee.js";
 import isString from "../utils/isString.js";
 import getTokenFrom from "../utils/getTokenFrom.js";
-import jwt from "jsonwebtoken";
+import  jwt from "jsonwebtoken";
 import config from "../utils/config.js";
 import storage from "../utils/firebaseConfig.js";
 import { ref, uploadBytes, deleteObject } from "firebase/storage";

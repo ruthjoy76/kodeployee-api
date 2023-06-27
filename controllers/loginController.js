@@ -22,9 +22,7 @@ async function login(req, res, next) {
       id: user._id,
     };
 
-    const token = jwt.sign(userForToken, config.SECRET, {
-      expiresIn: 60 * 60,
-    });
+    const token = jwt.sign(userForToken, config.SECRET);
 
     return res
       .status(200)
